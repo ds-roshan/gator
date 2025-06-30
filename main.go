@@ -3,27 +3,43 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/ds-roshan/gator/internal/config"
 )
+
+type state struct {
+	cfg *config.Config
+}
 
 func main() {
 	cfg, err := config.Read()
 	if err != nil {
 		fmt.Println("error reading a file:", err)
 	}
-	fmt.Printf("Read config: %+v\n", cfg)
 
-	err = cfg.SetUser("hihi")
-	if err != nil {
-		log.Fatalf("couldn't set current user: %v", err)
+	st := &state{
+		cfg: &cfg,
 	}
 
-	cfg, err = config.Read()
-	if err != nil {
-		log.Fatalf("error reading config: %v", err)
+	cmds := commands{
+		registeredCommands: make(map[string]func(*state, command) error),
+	}
+	cmds.register("login", handlerLogin)
+
+	args := os.Args
+	if len(args) < 2 {
+		log.Fatal("Usage: cli <command> [args...]")
 	}
 
-	fmt.Printf("config: %+v\n", cfg)
+	command := command{
+		Name: args[1],
+		Args: args[2:],
+	}
+
+	err = cmds.run(st, command)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
