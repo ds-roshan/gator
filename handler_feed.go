@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -27,21 +26,12 @@ func handlerAddFeed(s *state, cmd command) error {
 	url := cmd.Args[1]
 
 	feedParam := database.CreateFeedParams{
-		ID: uuid.New(),
-		Name: sql.NullString{
-			String: title,
-			Valid:  title != "",
-		},
-		Url: sql.NullString{
-			String: url,
-			Valid:  url != "",
-		},
+		ID:        uuid.New(),
+		Name:      title,
+		Url:       url,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		UserID: uuid.NullUUID{
-			UUID:  usr.ID,
-			Valid: true,
-		},
+		UserID:    usr.ID,
 	}
 
 	feed, err := s.db.CreateFeed(context.Background(), feedParam)
@@ -50,18 +40,38 @@ func handlerAddFeed(s *state, cmd command) error {
 	}
 
 	fmt.Println("Feed created successfully:")
-	printFeed(feed)
+	printFeed(feed, usr)
 	fmt.Println()
 	fmt.Println("================================")
 
 	return nil
 }
 
-func printFeed(feed database.Feed) {
+func handlerFeeds(s *state, cmd command) error {
+	feeds, err := s.db.GetFeeds(context.Background())
+
+	if err != nil {
+		return err
+	}
+
+	for _, feed := range feeds {
+		usr, err := s.db.GetUserById(context.Background(), feed.UserID)
+		if err != nil {
+			return err
+		}
+		printFeed(feed, usr)
+		println("================================")
+	}
+
+	return nil
+}
+
+func printFeed(feed database.Feed, user database.User) {
 	fmt.Printf("* ID:			%s\n", feed.ID)
 	fmt.Printf("* Created:		%v\n", feed.CreatedAt)
 	fmt.Printf("* Updated:		%v\n", feed.UpdatedAt)
 	fmt.Printf("* Name:			%s\n", feed.Name)
 	fmt.Printf("* URL:			%s\n", feed.Url)
 	fmt.Printf("* UserID:		%s\n", feed.UserID)
+	fmt.Printf("* User:			%s\n", user.Name)
 }
