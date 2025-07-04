@@ -1,4 +1,4 @@
--- +goose UP
+-- +goose Up
 CREATE TABLE feeds (
 id UUID PRIMARY KEY,
 name TEXT NOT NULL,
