@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -10,13 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func handlerAddFeed(s *state, cmd command) error {
-
-	currentUser := s.cfg.CurrentUserName
-	usr, err := s.db.GetUser(context.Background(), currentUser)
-	if err != nil {
-		return errors.New("invalid user: login again or register a user")
-	}
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("usage %s <title> <url>", cmd.Name)
@@ -31,7 +24,7 @@ func handlerAddFeed(s *state, cmd command) error {
 		Url:       url,
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
-		UserID:    usr.ID,
+		UserID:    user.ID,
 	}
 
 	feed, err := s.db.CreateFeed(context.Background(), feedParam)
@@ -40,14 +33,25 @@ func handlerAddFeed(s *state, cmd command) error {
 	}
 
 	fmt.Println("Feed created successfully:")
-	printFeed(feed, usr)
+	printFeed(feed, user)
 	fmt.Println()
 	fmt.Println("================================")
 
-	return handlerFollow(s, command{
-		Name: "follow",
-		Args: []string{url},
+	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		FeedID:    feed.ID,
+		UserID:    user.ID,
 	})
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("You're following %s\n", feedFollow.FeedName)
+
+	return nil
 }
 
 func handlerFeeds(s *state, cmd command) error {
