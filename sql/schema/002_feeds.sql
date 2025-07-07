@@ -13,4 +13,4 @@ CONSTRAINT fk_users
 );
 
 -- +goose Down
-DROP TABLE IF EXISTS feeds;
+DROP TABLE feeds;
